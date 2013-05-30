@@ -10,6 +10,15 @@ if [ ! -d "$DIR" ]; then
     mkdir $DIR/build
     mkdir $DIR/meta
 
+    cat > $DIR/meta/amzn_description.rst <<EOF
+=========================
+Title
+=========================
+
+Fill ...
+
+EOF
+
     cat > $DIR/meta/amzn_notes.rst <<EOF
 book name:
 title:
@@ -42,10 +51,10 @@ EOF
 
 
     cat > $DIR/requirements.txt <<EOF
-docutils
-Genshi
+docutils==0.10
+Genshi==0.7
 rst2epub2
-https://launchpad.net/rubber/trunk/1.1/+download/rubber-20100306.tar.gz
+#https://launchpad.net/rubber/trunk/1.1/+download/rubber-20100306.tar.gz
 #rst2nitrile
 EOF
 
@@ -63,26 +72,26 @@ env:
 	virtualenv env
 
 .PHONY: deps
-deps: env packages/.done \$DU $DU\$DU
-
-
-\$(DU):
+deps: env packages/.done
 	# see http://tartley.com/?p=1423&cpage=1
 	# --upgrade needed to force local (if there's a system install)
-	\$(PIP) install --upgrade --no-index --find-links=file://\${PWD\}/packages -r requirements.txt
+	\$(PIP) install --upgrade --no-index --find-links=file://\$\${PWD}/packages -r requirements.txt
 
 packages/.done:
 	mkdir packages; \
 	\$(PIP) install --download packages -r requirements.txt;\
 	touch packages/.done
 
+.PHONY: rstbook
 rstbook: deps
 	\$(BIN)rst2epub.py -r 3 --traceback book.rst build/\${BOOKFILENAME}.epub; pushd build; kindlegen-2.7 \${BOOKFILENAME}.epub -o \${BOOKFILENAME}.mobi; popd
 
+.PHONY: amazon_description
 amazon_description: deps
-	\$(BIN)rst2html meta/amzn_description.rst build/amzn_description.txt ;\
+	\$(BIN)rst2html.py meta/amzn_description.rst build/amzn_description.txt ;\
 	python -c 'import cgi, sys; print cgi.escape(sys.stdin.read())' < build/amzn_description.txt
 
+.PHONY: latexbook
 latexbook: deps
 	\$(BIN)rst2nitrile.py -r 3 --traceback book.rst build/\${BOOKFILENAME}.tex; pushd build; rubber -d pdf \$\{BOOKFILENAME}.tex; popd
 
